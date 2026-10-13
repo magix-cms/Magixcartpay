@@ -1,0 +1,12 @@
+{
+  "name": "Magixcartpay",
+  "version": "1.0.0",
+  "description": "Système de panier e-commerce et devis avec architecture de snapshot sécurisée pour la comptabilité.",
+  "author": "Magix CMS",
+  "type": "hybrid",
+  "has_config": true,
+  "default_hooks": [
+    "displayCartWidget",
+    "displayProductAddToCart"
+  ]
+}
