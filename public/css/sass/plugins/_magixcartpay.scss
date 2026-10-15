@@ -1,0 +1,19 @@
+/* --- Magixcartpay : Widget d'ajout au panier --- */
+.magixcartpay-add-widget {
+
+  .cartpay-qty-group {
+    /* Sur mobile, le groupe prend un max de 150px, mais peut être centré s'il est flex */
+    max-width: 150px;
+
+    /* Optionnel : supprime les flèches natives des inputs type="number"
+       puisque vous avez vos propres boutons +/- */
+    input[type=number] {
+      -moz-appearance: textfield;
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+  }
+}

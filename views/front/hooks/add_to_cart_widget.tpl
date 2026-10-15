@@ -1,24 +1,31 @@
 {* Widget d'ajout au panier avec gestion de quantité *}
-<div class="magixcartpay-add-widget mt-4">
+{* Widget d'ajout au panier avec gestion de quantité *}
+<div class="magixcartpay-add-widget mb-4">
 
     <form action="{$cart_add_url}" method="post" class="validate_form">
         <input type="hidden" name="id_product" value="{$product_cart_id}">
 
-        <div class="d-flex align-items-center mb-3">
+        {*
+           - flex-column : Empile verticalement sur mobile
+           - align-items-stretch : Étire les enfants à 100% sur mobile (C'est ÇA qui rend le bouton full-width !)
+           - flex-sm-row : Place côte à côte à partir de la tablette
+           - align-items-sm-center : Annule l'étirement et centre verticalement sur desktop
+        *}
+        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 mb-3">
 
-            {* 1. Sélecteur de quantité avec une largeur fixe raisonnable *}
-            <div class="input-group shadow-sm me-3" style="width: 140px; height: 48px;">
+            {* 1. Sélecteur de quantité *}
+            <div class="input-group shadow-sm cartpay-qty-group">
                 <button class="btn btn-light border border-secondary-subtle" type="button" onclick="this.nextElementSibling.stepDown()">
                     <i class="bi bi-dash fs-5"></i>
                 </button>
-                <input type="number" name="quantity" class="form-control form-control-lg text-center fw-bold border-secondary-subtle" value="1" min="1" aria-label="Quantité" style="padding:0;">
+                <input type="number" name="quantity" class="form-control form-control-lg text-center fw-bold border-secondary-subtle px-1" value="1" min="1" aria-label="Quantité">
                 <button class="btn btn-light border border-secondary-subtle" type="button" onclick="this.previousElementSibling.stepUp()">
                     <i class="bi bi-plus fs-5"></i>
                 </button>
             </div>
 
-            {* 2. Bouton d'ajout (ne prend que la place nécessaire) *}
-            <button type="submit" class="btn btn-primary shadow-sm cartpay-submit-btn" style="height: 48px; padding-left: 1.5rem; padding-right: 1.5rem;">
+            {* 2. Bouton d'ajout : On a retiré w-100 et w-sm-auto *}
+            <button type="submit" class="btn btn-primary btn-lg shadow-sm cartpay-submit-btn px-4">
                 <span class="fw-bold fs-6"><i class="bi bi-cart-plus me-2"></i> Ajouter au panier</span>
             </button>
 
