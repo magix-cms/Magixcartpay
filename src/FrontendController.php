@@ -184,7 +184,7 @@ class FrontendController extends BaseController
         $reference = $orderService->convertCartToOrder($idLang, $address, $paymentMethod, $typeDoc, $shippingPriceHt, $shippingMethod, $shippingAddress);
 
         if ($reference) {
-            $this->sendOrderEmails($reference, $address, $fullCart, $config, $typeDoc);
+            $this->sendOrderEmails($reference, $address, $fullCart, $config, $typeDoc, $paymentMethod);
 
             $baseUrl = rtrim((string)$this->view->getTemplateVars('site_url'), '/');
             $iso = strtolower($this->currentLang['iso_lang'] ?? 'fr');
@@ -196,61 +196,63 @@ class FrontendController extends BaseController
         }
     }
 
-    private function sendOrderEmails(string $reference, array $address, array $cartData, array $config, string $typeDoc): void
-    {
-        $isSmtp = isset($this->siteSettings['smtp_enabled']['value']) && $this->siteSettings['smtp_enabled']['value'] == '1';
-        $type = $isSmtp ? 'smtp' : 'mail';
+    private function sendOrderEmails(string $reference, array $address, array $cartData, array $config, string $typeDoc, string $paymentMethod): void{
+        {
+            $isSmtp = isset($this->siteSettings['smtp_enabled']['value']) && $this->siteSettings['smtp_enabled']['value'] == '1';
+            $type = $isSmtp ? 'smtp' : 'mail';
 
-        $options = [
-            'setHost'       => $this->siteSettings['set_host']['value'] ?? '',
-            'setPort'       => (int)($this->siteSettings['set_port']['value'] ?? 25),
-            'setEncryption' => $this->siteSettings['set_encryption']['value'] ?? '',
-            'setUsername'   => $this->siteSettings['set_username']['value'] ?? '',
-            'setPassword'   => $this->siteSettings['set_password']['value'] ?? '',
-        ];
+            $options = [
+                'setHost'       => $this->siteSettings['set_host']['value'] ?? '',
+                'setPort'       => (int)($this->siteSettings['set_port']['value'] ?? 25),
+                'setEncryption' => $this->siteSettings['set_encryption']['value'] ?? '',
+                'setUsername'   => $this->siteSettings['set_username']['value'] ?? '',
+                'setPassword'   => $this->siteSettings['set_password']['value'] ?? '',
+            ];
 
-        $mailer = new MailTool($type, $options);
+            $mailer = new MailTool($type, $options);
 
-        $emailData = [
-            'reference' => $reference,
-            'address'   => $address,
-            'cart'      => $cartData,
-            'type_doc'  => $typeDoc,
-            'config'    => $config
-        ];
+            $emailData = [
+                'reference'      => $reference,
+                'address'        => $address,
+                'cart'           => $cartData,
+                'type_doc'       => $typeDoc,
+                'config'         => $config,
+                'payment_method' => $paymentMethod // <-- NOUVEAU
+            ];
 
-        $fullName = trim($address['firstname'] . ' ' . $address['lastname']);
-        $senderEmail = !empty($config['email_sender']) ? $config['email_sender'] : ($this->siteSettings['mail_sender']['value'] ?? 'noreply@votresite.com');
-        $contactEmail = !empty($config['email_contact']) ? $config['email_contact'] : $senderEmail;
+            $fullName = trim($address['firstname'] . ' ' . $address['lastname']);
+            $senderEmail = !empty($config['email_sender']) ? $config['email_sender'] : ($this->siteSettings['mail_sender']['value'] ?? 'noreply@votresite.com');
+            $contactEmail = !empty($config['email_contact']) ? $config['email_contact'] : $senderEmail;
 
-        $subjectPrefix = ($typeDoc === 'order') ? 'Confirmation de votre commande' : 'Confirmation de votre demande de devis';
-        $clientSubject = $subjectPrefix . ' - ' . $reference;
-        $adminSubject  = 'Nouvelle ' . ($typeDoc === 'order' ? 'commande' : 'demande de devis') . ' : ' . $reference;
+            $subjectPrefix = ($typeDoc === 'order') ? 'Confirmation de votre commande' : 'Confirmation de votre demande de devis';
+            $clientSubject = $subjectPrefix . ' - ' . $reference;
+            $adminSubject  = 'Nouvelle ' . ($typeDoc === 'order' ? 'commande' : 'demande de devis') . ' : ' . $reference;
 
-        try {
-            $mailer->sendTemplate(
-                'front',
-                'emails/order_confirmation.tpl',
-                $emailData,
-                $clientSubject,
-                'Service Commercial <' . $senderEmail . '>',
-                [$address['email'] => $fullName],
-                [],
-                $senderEmail
-            );
+            try {
+                $mailer->sendTemplate(
+                    'front',
+                    'emails/order_confirmation.tpl',
+                    $emailData,
+                    $clientSubject,
+                    'Service Commercial <' . $senderEmail . '>',
+                    [$address['email'] => $fullName],
+                    [],
+                    $senderEmail
+                );
 
-            $mailer->sendTemplate(
-                'front',
-                'emails/order_admin_notification.tpl',
-                $emailData,
-                $adminSubject,
-                'Site Web <' . $senderEmail . '>',
-                [$contactEmail => 'Administrateur'],
-                [],
-                $senderEmail
-            );
-        } catch (\Throwable $e) {
-            $this->logger->log("Erreur SMTP ({$reference}) : " . $e->getMessage(), "error");
+                $mailer->sendTemplate(
+                    'front',
+                    'emails/order_admin_notification.tpl',
+                    $emailData,
+                    $adminSubject,
+                    'Site Web <' . $senderEmail . '>',
+                    [$contactEmail => 'Administrateur'],
+                    [],
+                    $senderEmail
+                );
+            } catch (\Throwable $e) {
+                $this->logger->log("Erreur SMTP ({$reference}) : " . $e->getMessage(), "error");
+            }
         }
     }
 
@@ -368,10 +370,16 @@ class FrontendController extends BaseController
             'cart'           => $fullCart,
             'cart_type_doc'  => $typeDoc,
             'accountProfile' => $accountProfile,
-            'seo_title'      => ($typeDoc === 'quotation') ? 'Demande de devis' : 'Mon Panier'
+            'seo_title'      => ($typeDoc === 'quotation') ? 'Demande de devis' : 'Mon Panier',
+            // ---> AJOUT : On passe la config complète à Smarty pour lire 'bank_wire'
+            'cart_config'    => $config
         ]);
 
         $this->view->caching = 0;
+
+        // Informe Magix CMS qu'il peut charger les modules de paiement/livraison
+        $this->initPluginsAddons();
+
         $this->view->display('index.tpl');
     }
 
@@ -522,5 +530,30 @@ class FrontendController extends BaseController
         }
 
         return $hasPurchased;
+    }
+
+    /**
+     * Initialise et enregistre les hooks des addons liés à Magixcartpay (Paiement, Livraison)
+     */
+    private function initPluginsAddons(): void
+    {
+        try {
+            $db = new MagixcartpayFrontDb();
+            // On récupère la liste des noms de plugins qui sont liés à Magixcartpay et activés
+            $activeAddonsNames = $db->getActiveAddonsForCart();
+
+            foreach ($activeAddonsNames as $pluginName) {
+                $bootClass = "Plugins\\" . $pluginName . "\\Boot";
+
+                if (class_exists($bootClass)) {
+                    $bootInstance = new $bootClass();
+                    if (method_exists($bootInstance, 'register')) {
+                        $bootInstance->register();
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->logger->log("Erreur chargement addons Magixcartpay : " . $e->getMessage(), "error");
+        }
     }
 }

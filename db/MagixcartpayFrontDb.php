@@ -125,4 +125,72 @@ class MagixcartpayFrontDb extends BaseDb
         // Renvoie true si on trouve au moins une ligne, sinon false
         return !empty($result);
     }
+    /**
+     * Met à jour le statut d'une commande (Appelé par les modules de paiement externes comme MagixStripe)
+     *
+     * @param string $orderRef La référence unique de la commande
+     * @param string $status Le nouveau statut (ex: 'paid', 'canceled')
+     * @param string $paymentMethod Le nom de la passerelle utilisée (ex: 'Stripe')
+     * @return bool
+     */
+    /**
+     * Met à jour le statut d'une commande (Appelé par les modules de paiement externes comme MagixStripe)
+     *
+     * @param string $orderRef La référence unique de la commande
+     * @param string $status Le nouveau statut (ex: 'paid', 'canceled')
+     * @param string $paymentMethod Le nom de la passerelle utilisée (ex: 'Stripe')
+     * @return bool
+     */
+    public function updateOrderStatus(string $orderRef, string $status, string $paymentMethod = ''): bool
+    {
+        $qb = new QueryBuilder();
+
+        $dataToUpdate = [
+            'status' => $status
+        ];
+
+        if ($paymentMethod !== '') {
+            $dataToUpdate['payment_method'] = $paymentMethod;
+        }
+
+        $qb->update('mc_magixcartpay_order', $dataToUpdate)
+            ->where('reference = :ref', ['ref' => $orderRef]);
+
+        return $this->executeUpdate($qb);
+    }
+    /**
+     * Récupère la liste des plugins actifs qui ciblent Magixcartpay (Addons de paiement/livraison)
+     */
+    public function getActiveAddonsForCart(): array
+    {
+        $qb = new QueryBuilder();
+        $qb->select('p.name')
+            ->from('mc_plugins_module', 'pm')
+            ->join('mc_plugins', 'p', 'pm.plugin_name = p.name')
+            ->where('pm.module_name = "magixcartpay" AND pm.active = 1');
+
+        $addons = $this->executeAll($qb);
+
+        $activeAddons = [];
+        if ($addons) {
+            foreach ($addons as $addon) {
+                $activeAddons[] = $addon['name'];
+            }
+        }
+
+        return $activeAddons;
+    }
+    /**
+     * Récupère une commande via sa référence unique (utilisé par les modules de paiement)
+     */
+    public function getOrderByRef(string $reference): array|false
+    {
+        $qb = new QueryBuilder();
+        $qb->select('*')
+            ->from('mc_magixcartpay_order')
+            ->where('reference = :ref', ['ref' => $reference])
+            ->limit(1);
+
+        return $this->executeRow($qb);
+    }
 }

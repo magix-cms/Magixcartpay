@@ -104,15 +104,23 @@
                 <!-- INFO PAIEMENT (Uniquement si c'est une commande validée) -->
                 {if $type_doc == 'order'}
                     <hr style="border:none; border-top: 1px solid #EEEEEE; margin: 25px 0;">
-                    <h3 style="color: #444444; font-size: 18px;">Instructions de paiement</h3>
-                    <p>Veuillez effectuer un virement bancaire pour valider définitivement votre commande :</p>
-                    <ul style="background: #fff8e1; padding: 15px 15px 15px 35px; border: 1px solid #ffe082; border-radius: 4px;">
-                        <li style="margin-bottom: 5px;"><strong>Bénéficiaire :</strong> {$config.account_owner|default:'À configurer'}</li>
-                        <li style="margin-bottom: 5px;"><strong>IBAN :</strong> {$config.bank_account|default:'À configurer'}</li>
-                        {if !empty($config.bank_address)}<li style="margin-bottom: 5px;"><strong>Banque :</strong> {$config.bank_address|nl2br}</li>{/if}
-                        <li><strong>Communication (à rappeler) :</strong> <span style="font-weight: bold; color: #d32f2f;">{$reference}</span></li>
-                    </ul>
-                    <p style="font-size: 14px; color: #777;">Votre commande sera expédiée dès réception de votre paiement.</p>
+
+                    {* --- OPTION NATIVE : VIREMENT --- *}
+                    {if $payment_method == 'bank_wire'}
+                        <h3 style="color: #444444; font-size: 18px;">Instructions de paiement</h3>
+                        <p>Veuillez effectuer un virement bancaire pour valider définitivement votre commande :</p>
+                        <ul style="background: #fff8e1; padding: 15px 15px 15px 35px; border: 1px solid #ffe082; border-radius: 4px;">
+                            <li style="margin-bottom: 5px;"><strong>Bénéficiaire :</strong> {$config.account_owner|default:'À configurer'}</li>
+                            <li style="margin-bottom: 5px;"><strong>IBAN :</strong> {$config.bank_account|default:'À configurer'}</li>
+                            {if !empty($config.bank_address)}<li style="margin-bottom: 5px;"><strong>Banque :</strong> {$config.bank_address|nl2br}</li>{/if}
+                            <li><strong>Communication (à rappeler) :</strong> <span style="font-weight: bold; color: #d32f2f;">{$reference}</span></li>
+                        </ul>
+                        <p style="font-size: 14px; color: #777;">Votre commande sera expédiée dès réception de votre paiement.</p>
+
+                        {* --- INJECTION DYNAMIQUE POUR LES ADDONS EXTERNES (Stripe, Paypal...) --- *}
+                    {else}
+                        {hook name="displayCartPaymentInstructions" payment_method=$payment_method reference=$reference}
+                    {/if}
                 {/if}
 
                 <p style="margin-top: 30px;">À très bientôt sur notre boutique.</p>

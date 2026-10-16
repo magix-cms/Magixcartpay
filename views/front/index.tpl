@@ -207,16 +207,25 @@
                                     </div>
 
                                     <h5 class="fw-bold mb-3 mt-4 border-top pt-4">Moyen de paiement</h5>
-                                    <div class="mb-4">
-                                        <div class="border rounded p-3 mb-2 bg-light">
-                                            <div class="form-check mb-0">
-                                                <input class="form-check-input mt-1" type="radio" name="payment_method" id="bank_wire" value="bank_wire" checked required style="cursor:pointer;">
-                                                <label class="form-check-label fw-bold w-100 ps-1" for="bank_wire" style="cursor:pointer;">
-                                                    <i class="bi bi-bank text-success me-2 fs-5 align-middle"></i> Virement bancaire
-                                                    <div class="text-muted small fw-normal mt-1">Vous recevrez nos coordonnées bancaires par e-mail après validation de votre commande.</div>
-                                                </label>
+                                    <div class="mb-4" id="payment-methods-container">
+
+                                        {* --- OPTION NATIVE : VIREMENT BANCAIRE --- *}
+                                        {if isset($cart_config.bank_wire) && $cart_config.bank_wire == 1}
+                                            <div class="border rounded p-3 mb-2 bg-light border-success border-opacity-50">
+                                                <div class="form-check mb-0">
+                                                    {* L'attribut checked est de retour ici *}
+                                                    <input class="form-check-input mt-1 payment-method-radio" type="radio" name="payment_method" id="bank_wire" value="bank_wire" checked required style="cursor:pointer;">
+                                                    <label class="form-check-label fw-bold w-100 ps-1" for="bank_wire" style="cursor:pointer;">
+                                                        <i class="bi bi-bank text-success me-2 fs-5 align-middle"></i> Virement bancaire
+                                                        <div class="text-muted small fw-normal mt-1">Vous recevrez nos coordonnées bancaires par e-mail après validation de votre commande.</div>
+                                                    </label>
+                                                </div>
                                             </div>
-                                        </div>
+                                        {/if}
+
+                                        {* --- INJECTION DES ADDONS DE PAIEMENT (Ex: MagixStripe) --- *}
+                                        {hook name="displayCartPaymentOptions" cart=$cart}
+
                                     </div>
 
                                 {else}
@@ -340,6 +349,19 @@
                 });
 
                 updateCartTotals();
+                // --- SÉCURITÉ : Cocher le premier moyen de paiement si rien n'est sélectionné ---
+                const paymentRadios = document.querySelectorAll('.payment-method-radio');
+                let isPaymentChecked = false;
+
+                paymentRadios.forEach(radio => {
+                    if (radio.checked) isPaymentChecked = true;
+                });
+
+                // Si l'admin a désactivé le virement bancaire, la liste n'a rien de coché.
+                // On force la sélection du 1er addon disponible (ex: Stripe)
+                if (!isPaymentChecked && paymentRadios.length > 0) {
+                    paymentRadios[0].checked = true;
+                }
             });
         </script>
     {/if}
