@@ -286,7 +286,7 @@ class CartService extends BaseDb
         $qb = new QueryBuilder();
         $qb->select([
             'ci.id_item', 'ci.quantity', 'ci.date_add',
-            'p.id_product', 'p.reference_p', 'p.price_p',
+            'p.id_product', 'p.reference_p', 'p.price_p', 'p.price_promo_p', // <--- AJOUT DE price_promo_p
             'pc.name_p', 'pc.url_p',
             'i.name_img'
         ])
@@ -316,8 +316,17 @@ class CartService extends BaseDb
 
         foreach ($rawItems as $row) {
             $qty = (int)$row['quantity'];
-            $priceHt = (float)$row['price_p'];
-            $lineTotalHt = $priceHt * $qty;
+
+            // --- NOUVELLE LOGIQUE DE PRIX ---
+            // On vérifie si un prix promo existe ET est supérieur à 0
+            $priceBaseHt = (float)$row['price_p'];
+            $pricePromoHt = isset($row['price_promo_p']) ? (float)$row['price_promo_p'] : 0.0;
+
+            // Si la promo est active, c'est ce prix qui est utilisé
+            $finalPriceHt = ($pricePromoHt > 0) ? $pricePromoHt : $priceBaseHt;
+
+            // Calcul du total de la ligne
+            $lineTotalHt = $finalPriceHt * $qty;
 
             $totalHt += $lineTotalHt;
             $totalItemsCount += $qty;
@@ -335,7 +344,9 @@ class CartService extends BaseDb
                 'url'          => $row['url_p'],
                 'image_url'    => $imageUrl,
                 'quantity'     => $qty,
-                'unit_price'   => $priceHt,
+                'unit_price'   => $finalPriceHt, // <--- ON ASSIGNE LE BON PRIX ICI
+                'original_price'=> $priceBaseHt, // (Optionnel) Pour afficher l'ancien prix barré dans le template
+                'is_promo'     => ($pricePromoHt > 0), // (Optionnel) Pour un badge "Promo"
                 'total_price'  => $lineTotalHt
             ];
         }
