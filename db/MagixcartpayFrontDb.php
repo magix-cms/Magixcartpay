@@ -141,13 +141,24 @@ class MagixcartpayFrontDb extends BaseDb
      * @param string $paymentMethod Le nom de la passerelle utilisée (ex: 'Stripe')
      * @return bool
      */
+    /**
+     * Met à jour le statut d'une commande (Appelé par les modules de paiement externes comme MagixStripe)
+     *
+     * @param string $orderRef La référence unique de la commande
+     * @param string $status Le nouveau statut (ex: 'paid', 'canceled')
+     * @param string $paymentMethod Le nom de la passerelle utilisée (ex: 'Stripe')
+     * @return bool
+     */
+    /**
+     * Met à jour le statut d'une commande
+     */
+    /**
+     * Met à jour le statut d'une commande (Appelé par les modules de paiement externes comme MagixStripe)
+     */
     public function updateOrderStatus(string $orderRef, string $status, string $paymentMethod = ''): bool
     {
         $qb = new QueryBuilder();
-
-        $dataToUpdate = [
-            'status' => $status
-        ];
+        $dataToUpdate = ['status' => $status];
 
         if ($paymentMethod !== '') {
             $dataToUpdate['payment_method'] = $paymentMethod;
@@ -156,7 +167,18 @@ class MagixcartpayFrontDb extends BaseDb
         $qb->update('mc_magixcartpay_order', $dataToUpdate)
             ->where('reference = :ref', ['ref' => $orderRef]);
 
-        return $this->executeUpdate($qb);
+        $result = $this->executeUpdate($qb) !== false;
+
+        // Si la mise à jour en base a réussi, on déclenche le "Filter" d'action
+        if ($result) {
+            \App\Component\Hook\HookManager::triggerFilter('actionOrderStatusUpdated', true, [
+                'order_ref'      => $orderRef,
+                'status'         => $status,
+                'payment_method' => $paymentMethod
+            ]);
+        }
+
+        return $result;
     }
     /**
      * Récupère la liste des plugins actifs qui ciblent Magixcartpay (Addons de paiement/livraison)

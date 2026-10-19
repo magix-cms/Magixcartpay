@@ -167,7 +167,15 @@
                     {foreach from=$order.items item=item}
                         <tr>
                             <td class="px-4 font-monospace text-muted small">{$item.product_reference|default:'---'}</td>
-                            <td class="fw-bold">{$item.product_name}</td>
+                            {* --- CORRECTION : Un seul <td> pour le Produit et la Réf --- *}
+                            <td>
+                                <div class="fw-bold">
+                                    {$item.product_name}
+                                    {if isset($item.is_promo) && $item.is_promo == 1}
+                                        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7em;">En Promo</span>
+                                    {/if}
+                                </div>
+                            </td>
                             <td class="text-center">
                                 <span class="badge bg-light text-dark border">{$item.quantity}</span>
                             </td>
@@ -178,7 +186,7 @@
                     {/foreach}
                     </tbody>
 
-                    {* --- NOUVEAU FOOTER AVEC LIVRAISON --- *}
+                    {* --- FOOTER AVEC LIVRAISON --- *}
                     <tfoot class="table-light">
                     <tr>
                         <td colspan="4" class="border-0"></td>

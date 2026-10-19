@@ -57,6 +57,7 @@ class OrderService extends BaseDb
         $idOrder = (int)$this->getLastInsertId();
 
         // 3. Insertion des lignes de produits
+        // 3. Insertion des lignes de produits
         foreach ($fullCart['items'] as $item) {
             $qbItem = new QueryBuilder();
             $itemData = [
@@ -66,6 +67,7 @@ class OrderService extends BaseDb
                 'product_name'      => $item['name'],
                 'quantity'          => $item['quantity'],
                 'unit_price_ht'     => $item['unit_price'],
+                'is_promo'          => !empty($item['is_promo']) ? 1 : 0, // <--- AJOUT DE LA PROMO ICI
                 'tax_rate'          => $taxRate,
                 'total_ttc'         => round($item['total_price'] * (1 + ($taxRate / 100)), 2)
             ];

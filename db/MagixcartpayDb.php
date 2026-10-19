@@ -147,13 +147,40 @@ class MagixcartpayDb extends BaseDb
     /**
      * Met à jour le statut d'une commande
      */
+    /**
+     * Met à jour le statut d'une commande
+     */
+    /**
+     * Met à jour le statut d'une commande
+     */
     public function updateOrderStatus(int $idOrder, string $status): bool
     {
         $qb = new QueryBuilder();
         $qb->update('mc_magixcartpay_order', ['status' => $status])
             ->where('id_order = :id', ['id' => $idOrder]);
 
-        return $this->executeUpdate($qb) !== false;
+        $result = $this->executeUpdate($qb) !== false;
+
+        if ($result) {
+            // On récupère d'abord la référence de la commande
+            $qbFetch = new QueryBuilder();
+            $qbFetch->select('reference')
+                ->from('mc_magixcartpay_order')
+                ->where('id_order = :id', ['id' => $idOrder])
+                ->limit(1);
+            $orderData = $this->executeRow($qbFetch);
+
+            if ($orderData) {
+                // On déclenche le "Filter" d'action
+                \App\Component\Hook\HookManager::triggerFilter('actionOrderStatusUpdated', true, [
+                    'order_ref' => $orderData['reference'],
+                    'status'    => $status,
+                    'is_admin'  => true
+                ]);
+            }
+        }
+
+        return $result;
     }
 
     /**
