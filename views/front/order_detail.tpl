@@ -11,9 +11,14 @@
                 <i class="bi bi-receipt text-primary me-2"></i>
                 {if $order.type_doc == 'order'}Commande{else}Devis{/if} {$order.reference}
             </h1>
-            <a href="{$base_url}{$current_lang.iso_lang|lower}/?controller=Magixcartpay&action=history" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i> Retour aux commandes
-            </a>
+            <div>
+                {* --- NOUVEAU : LE POINT D'ACCROCHE POUR LA FACTURE PDF --- *}
+                {event name="displayCartpayOrderActions" order_ref=$order.reference}
+
+                <a href="{$base_url}{$current_lang.iso_lang|lower}/?controller=Magixcartpay&action=history" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Retour aux commandes
+                </a>
+            </div>
         </div>
 
         <div class="row g-4">
