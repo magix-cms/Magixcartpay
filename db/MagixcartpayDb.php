@@ -147,12 +147,6 @@ class MagixcartpayDb extends BaseDb
     /**
      * Met à jour le statut d'une commande
      */
-    /**
-     * Met à jour le statut d'une commande
-     */
-    /**
-     * Met à jour le statut d'une commande
-     */
     public function updateOrderStatus(int $idOrder, string $status): bool
     {
         $qb = new QueryBuilder();
@@ -162,7 +156,6 @@ class MagixcartpayDb extends BaseDb
         $result = $this->executeUpdate($qb) !== false;
 
         if ($result) {
-            // On récupère d'abord la référence de la commande
             $qbFetch = new QueryBuilder();
             $qbFetch->select('reference')
                 ->from('mc_magixcartpay_order')
@@ -171,6 +164,9 @@ class MagixcartpayDb extends BaseDb
             $orderData = $this->executeRow($qbFetch);
 
             if ($orderData) {
+                // --- ON RÉVEILLE LES ADDONS AVANT DE DÉCLENCHER L'ÉVÉNEMENT ---
+                $this->bootCartAddons();
+
                 // On déclenche le "Filter" d'action
                 \App\Component\Hook\HookManager::triggerFilter('actionOrderStatusUpdated', true, [
                     'order_ref' => $orderData['reference'],
@@ -218,5 +214,64 @@ class MagixcartpayDb extends BaseDb
         $this->executeDelete($qbDelCarts);
 
         return count($ids);
+    }
+    /**
+     * Récupère la liste des plugins actifs qui ciblent Magixcartpay (Addons)
+     */
+    public function getActiveAddonsForCart(): array
+    {
+        $qb = new QueryBuilder();
+        $qb->select('p.name')
+            ->from('mc_plugins_module', 'pm')
+            ->join('mc_plugins', 'p', 'pm.plugin_name = p.name')
+            ->where('pm.module_name = "magixcartpay" AND pm.active = 1');
+
+        $addons = $this->executeAll($qb);
+
+        $activeAddons = [];
+        if ($addons) {
+            foreach ($addons as $addon) {
+                $activeAddons[] = $addon['name'];
+            }
+        }
+
+        return $activeAddons;
+    }
+
+    /**
+     * Charge manuellement les Boot.php des addons liés
+     */
+    public function bootCartAddons(): void
+    {
+        $activeAddonsNames = $this->getActiveAddonsForCart();
+
+        foreach ($activeAddonsNames as $pluginName) {
+            $bootFile = ROOT_DIR . 'plugins' . DS . $pluginName . DS . 'Boot.php';
+
+            if (file_exists($bootFile)) {
+                require_once $bootFile;
+
+                $bootClass = "\\Plugins\\" . $pluginName . "\\Boot";
+                if (class_exists($bootClass)) {
+                    $bootInstance = new $bootClass();
+                    if (method_exists($bootInstance, 'register')) {
+                        $bootInstance->register();
+                    }
+                }
+            }
+        }
+    }
+    /**
+     * Récupère une commande via sa référence unique (utilisé par les Hooks d'addons)
+     */
+    public function getOrderByRef(string $reference): array|false
+    {
+        $qb = new QueryBuilder();
+        $qb->select('*')
+            ->from('mc_magixcartpay_order')
+            ->where('reference = :ref', ['ref' => $reference])
+            ->limit(1);
+
+        return $this->executeRow($qb);
     }
 }

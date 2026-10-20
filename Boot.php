@@ -9,33 +9,65 @@ declare(strict_types=1);
 namespace Plugins\Magixcartpay;
 
 use App\Component\Hook\HookManager;
-use Plugins\Magixcartpay\src\FrontendController;
 
 class Boot
 {
     public function register(): void
     {
         // Widget Header : Panier global
-        HookManager::register('displayHeaderCartWidget', 'Magixcartpay', [FrontendController::class, 'renderWidget']);
+        HookManager::register('displayHeaderCartWidget', 'Magixcartpay', function(array $params) {
+            $class = '\Plugins\Magixcartpay\src\FrontendController';
+            if (class_exists($class)) {
+                return $class::renderWidget();
+            }
+            return '';
+        });
 
         // Fiche Produit : Bouton "Ajouter au panier"
-        HookManager::register('displayProductAddToCart', 'Magixcartpay', [FrontendController::class, 'renderAddToCartWidget']);
+        HookManager::register('displayProductAddToCart', 'Magixcartpay', function(array $params) {
+            $class = '\Plugins\Magixcartpay\src\FrontendController';
+            if (class_exists($class)) {
+                return $class::renderAddToCartWidget($params);
+            }
+            return '';
+        });
 
-        // --- NOUVEAU : ESPACE MEMBRE MAGIXACCOUNT ---
+        // --- ESPACE MEMBRE MAGIXACCOUNT ---
 
         // Injecte un lien "Mes Commandes" dans la barre latérale du profil
-        HookManager::register('displayAccountProfileMenu', 'Magixcartpay', [FrontendController::class, 'hookAccountProfileMenu']);
+        HookManager::register('displayAccountProfileMenu', 'Magixcartpay', function(array $params) {
+            $class = '\Plugins\Magixcartpay\src\FrontendController';
+            if (class_exists($class)) {
+                return $class::hookAccountProfileMenu($params);
+            }
+            return '';
+        });
 
         // Injecte le bloc "Historique des commandes" dans le profil
-        HookManager::register('displayAccountProfileContent', 'Magixcartpay', [FrontendController::class, 'hookAccountProfileContent']);
+        HookManager::register('displayAccountProfileContent', 'Magixcartpay', function(array $params) {
+            $class = '\Plugins\Magixcartpay\src\FrontendController';
+            if (class_exists($class)) {
+                return $class::hookAccountProfileContent($params);
+            }
+            return '';
+        });
 
         $view = \Magepattern\Component\Tool\SmartyTool::getInstance('front');
-        $view->registerPlugin('function', 'has_purchased', [FrontendController::class, 'smartyHasPurchased']);
+        $view->registerPlugin('function', 'has_purchased', function(array $params, $smarty) {
+            $class = '\Plugins\Magixcartpay\src\FrontendController';
+            if (class_exists($class)) {
+                return $class::smartyHasPurchased($params, $smarty);
+            }
+            return false;
+        });
     }
 
     public function hookDisplayCartWidget(): string
     {
-        // On fait appel à la méthode statique que nous avons ajoutée dans le FrontendController
-        return FrontendController::renderWidget();
+        $class = '\Plugins\Magixcartpay\src\FrontendController';
+        if (class_exists($class)) {
+            return $class::renderWidget();
+        }
+        return '';
     }
 }

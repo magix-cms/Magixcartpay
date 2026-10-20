@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `mc_magixcartpay_order_item` (
     `product_name` VARCHAR(255) NOT NULL,
     `quantity` SMALLINT(5) UNSIGNED NOT NULL,
     `unit_price_ht` DECIMAL(12,2) NOT NULL,
+    `is_promo` TINYINT(1) UNSIGNED NOT NULL DEFAULT '0',
     `tax_rate` DECIMAL(5,2) NOT NULL,
     `total_ttc` DECIMAL(12,2) NOT NULL,
     CONSTRAINT `fk_magixcartpay_order_item` FOREIGN KEY (`id_order`) REFERENCES `mc_magixcartpay_order`(`id_order`) ON DELETE CASCADE
