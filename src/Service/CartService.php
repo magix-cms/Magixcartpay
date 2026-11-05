@@ -315,12 +315,14 @@ class CartService extends BaseDb
         $totalItemsCount = 0;
 
         foreach ($rawItems as $row) {
-            $qty = (int)$row['quantity'];
+            // CORRECTION DE SÉCURITÉ : La quantité doit être d'au moins 1
+            $qty = max(1, (int)$row['quantity']);
 
             // --- NOUVELLE LOGIQUE DE PRIX ---
-            // On vérifie si un prix promo existe ET est supérieur à 0
-            $priceBaseHt = (float)$row['price_p'];
-            $pricePromoHt = isset($row['price_promo_p']) ? (float)$row['price_promo_p'] : 0.0;
+            // CORRECTION DE SÉCURITÉ (P3) : On force le prix en absolu pour rejeter les montants négatifs
+            // Abs() garantit qu'une faille de manipulation BDD/Admin ne puisse pas générer un crédit en caisse
+            $priceBaseHt = abs((float)$row['price_p']);
+            $pricePromoHt = isset($row['price_promo_p']) ? abs((float)$row['price_promo_p']) : 0.0;
 
             // Si la promo est active, c'est ce prix qui est utilisé
             $finalPriceHt = ($pricePromoHt > 0) ? $pricePromoHt : $priceBaseHt;
